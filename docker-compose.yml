@@ -1,0 +1,25 @@
+# Local MongoDB for development. Start: npm run db:up   Stop: npm run db:down   Wipe everything: npm run db:reset
+name: cafe
+services:
+  mongo:
+    image: mongo:7.0
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:27017:27017"   # reachable only from this computer, never from the network
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-dev-root-pass}
+      MONGO_APP_DB: ${MONGODB_DB:-cafe}
+      MONGO_APP_USER: ${MONGO_APP_USER:-cafe_app}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD:-dev-app-pass}
+    volumes:
+      - mongo-data:/data/db
+      - ./docker/mongo-init.sh:/docker-entrypoint-initdb.d/10-app-user.sh:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+volumes:
+  mongo-data:

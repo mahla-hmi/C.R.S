@@ -1,0 +1,26 @@
+{
+  "name": "cafe-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "db:up": "docker compose --env-file .env.local up -d",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs -f mongo",
+    "db:reset": "docker compose down -v && docker compose --env-file .env.local up -d",
+    "db:backup": "node scripts/db-tool.mjs backup",
+    "db:restore": "node scripts/db-tool.mjs restore",
+    "push:keys": "node scripts/push-keys.mjs",
+    "check:wording": "node scripts/check-wording.mjs"
+  },
+  "dependencies": {
+    "mongodb": "^6.8.0",
+    "qrcode": "^1.5.4",
+    "next": "^15.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "web-push": "^3.6.7"
+  }
+}
