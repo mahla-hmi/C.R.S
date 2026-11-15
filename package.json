@@ -13,7 +13,8 @@
     "db:backup": "node scripts/db-tool.mjs backup",
     "db:restore": "node scripts/db-tool.mjs restore",
     "push:keys": "node scripts/push-keys.mjs",
-    "check:wording": "node scripts/check-wording.mjs"
+    "check:wording": "node scripts/check-wording.mjs",
+    "check:admin-i18n": "node scripts/check-admin-i18n.mjs"
   },
   "dependencies": {
     "mongodb": "^6.8.0",

@@ -1,3 +1,5 @@
-export default function DbError() {
-  return <div className="ad-empty"><b>اتصال به پایگاه‌داده ممکن نیست</b><p>لطفاً از فعال بودن پایگاه‌داده اطمینان حاصل کنید (npm run db:up) و دوباره تلاش کنید.</p></div>;
+import { adminI18n } from '@/lib/admin/lang';
+export default async function DbError() {
+  const { t } = await adminI18n();
+  return <div className="ad-empty"><b>{t.dbError.title}</b><p>{t.dbError.text}</p></div>;
 }

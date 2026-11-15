@@ -2,70 +2,76 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/admin/server';
+import { adminI18n } from '@/lib/admin/lang';
 import { can } from '@/lib/admin/permissions';
-import { toJalali, MONTHS } from '@/lib/jalali-cal';
-import { cafeNow, isValidDate, fd } from '@/lib/booking';
+import { calSys } from '@/lib/calendar-sys';
+import { cafeNow, isValidDate } from '@/lib/booking';
 import MonthGrid from '@/components/admin/MonthGrid';
 import DayBoard from '@/components/admin/DayBoard';
 import AutoRefresh from '@/components/admin/AutoRefresh';
+import SwipeMonth from '@/components/admin/SwipeMonth';
 import DbError from '@/components/admin/DbError';
 import NoAccess from '@/components/admin/NoAccess';
-import { AdminCalendarSkeleton, AdminDaySkeleton } from '@/components/Skeleton';
+import { AdminCalendarSkeleton, AdminDaySkeleton } from '@/components/admin/Skeletons';
 export const dynamic = 'force-dynamic';
 
-const MIN_JY = 1380, MAX_JY = 1450;
 const pad = (n) => String(n).padStart(2, '0');
-function parseMonth(s) {
-  const m = /^(\d{4})-(\d{1,2})$/.exec(String(s || ''));
-  const jy = m ? +m[1] : 0, jm = m ? +m[2] : 0;
-  return jm >= 1 && jm <= 12 && jy >= MIN_JY && jy <= MAX_JY ? { jy, jm } : null;
-}
-const step = ({ jy, jm }, n) => { const t = jy * 12 + (jm - 1) + n; return { jy: Math.floor(t / 12), jm: (t % 12) + 1 }; };
-const href = ({ jy, jm }) => `/admin/calendar?m=${jy}-${pad(jm)}`;
 const Chevron = ({ dir }) => <svg viewBox="0 0 24 24" aria-hidden="true"><path d={dir === 'prev' ? 'M9 6l6 6-6 6' : 'M15 6l-6 6 6 6'} /></svg>;
 
-// URL: /admin/calendar?m=1405-08 (Shamsi month) &d=2026-11-04 (the chosen day, ISO). Without parameters: this month, today selected.
+// URL: /admin/calendar?m=1405-08 (Persian: Shamsi month) or ?m=2026-11 (English: Gregorian month), and &d=2026-11-04 (the chosen day, ISO).
+// Without parameters: this month, today selected. A month in the other calendar's numbers is ignored (e.g. after switching language).
 export default async function CalendarPage({ searchParams }) {
+  const { lang, t, n } = await adminI18n();
+  const C = t.cal, sys = calSys(lang);
   let session;
   try { session = await getSession(); } catch { return <DbError />; }
   if (!session) redirect('/admin/login');
   if (!can(session, 'reservations.view')) return <NoAccess />;
   const canManage = can(session, 'reservations.manage');
 
+  const parseMonth = (s) => {
+    const m = /^(\d{4})-(\d{1,2})$/.exec(String(s || ''));
+    const y = m ? +m[1] : 0, mo = m ? +m[2] : 0;
+    return mo >= 1 && mo <= 12 && y >= sys.MIN && y <= sys.MAX ? { y, m: mo } : null;
+  };
+  const step = ({ y, m }, k) => { const v = y * 12 + (m - 1) + k; return { y: Math.floor(v / 12), m: (v % 12) + 1 }; };
+  const href = ({ y, m }) => `/admin/calendar?m=${y}-${pad(m)}`;
+
   const sp = await searchParams;
-  const today = cafeNow().date, tj = toJalali(today);
+  const today = cafeNow().date, tp = sys.parts(today);
   const dParam = isValidDate(sp?.d) ? sp.d : null;
-  const cur = parseMonth(sp?.m) || (dParam ? toJalali(dParam) : tj);
-  const same = (a, b) => a.jy === b.jy && a.jm === b.jm;
+  const dp = dParam ? sys.parts(dParam) : null;
+  const cur = parseMonth(sp?.m) || (dp ? { y: dp.y, m: dp.m } : { y: tp.y, m: tp.m });
+  const same = (a, b) => a.y === b.y && a.m === b.m;
   // the chosen day must belong to the month on screen; with no choice made, today is selected when it is in this month
-  const selected = dParam ? (same(toJalali(dParam), cur) ? dParam : null) : (same(tj, cur) ? today : null);
+  const selected = dParam ? (same(dp, cur) ? dParam : null) : (same(tp, cur) ? today : null);
   const prev = step(cur, -1), next = step(cur, 1);
 
   return (
     <>
       <AutoRefresh />
-      <div className="ad-head"><div><h1>تقویم</h1><p className="ad-mut">برنامهٔ رزروها و وضعیت میزها در هر روز</p></div></div>
+      <div className="ad-head"><div><h1>{C.title}</h1><p className="ad-mut">{C.sub}</p></div></div>
       <div className="cal-wrap">
-        <section className="cal-main" aria-label="تقویم شمسی">
-          <div className="cal-card">
+        <section className="cal-main" id="cal-top" aria-label={C.aria}>
+          <SwipeMonth className="cal-card" prev={prev.y >= sys.MIN ? href(prev) : null} next={next.y <= sys.MAX ? href(next) : null}>
             <div className="cal-nav">
-              {prev.jy >= MIN_JY ? <Link className="cal-arrow" href={href(prev)} aria-label="ماه قبل"><Chevron dir="prev" /></Link> : <span className="cal-arrow off" />}
-              <div className="cal-title"><b>{MONTHS[cur.jm - 1]} {fd(cur.jy)}</b>{!same(cur, tj) || selected !== today ? <Link href="/admin/calendar" className="cal-today">امروز</Link> : null}</div>
-              {next.jy <= MAX_JY ? <Link className="cal-arrow" href={href(next)} aria-label="ماه بعد"><Chevron dir="next" /></Link> : <span className="cal-arrow off" />}
+              {prev.y >= sys.MIN ? <Link className="cal-arrow" href={href(prev)} aria-label={C.prev}><Chevron dir="prev" /></Link> : <span className="cal-arrow off" />}
+              <div className="cal-title"><b>{sys.MONTHS[cur.m - 1]} {n(cur.y)}</b>{!same(cur, tp) || selected !== today ? <Link href="/admin/calendar" className="cal-today">{C.today}</Link> : null}</div>
+              {next.y <= sys.MAX ? <Link className="cal-arrow" href={href(next)} aria-label={C.next}><Chevron dir="next" /></Link> : <span className="cal-arrow off" />}
             </div>
             {/* each month shows a skeleton while its numbers load */}
-            <Suspense key={`m${cur.jy}-${cur.jm}`} fallback={<AdminCalendarSkeleton />}>
-              <MonthGrid jy={cur.jy} jm={cur.jm} selected={selected} today={today} />
+            <Suspense key={`m${lang}${cur.y}-${cur.m}`} fallback={<AdminCalendarSkeleton />}>
+              <MonthGrid y={cur.y} m={cur.m} selected={selected} today={today} />
             </Suspense>
-          </div>
+          </SwipeMonth>
         </section>
 
         <section className="cal-side" id="day-detail" aria-live="polite">
           {selected ? (
-            <Suspense key={`d${selected}`} fallback={<AdminDaySkeleton />}>
+            <Suspense key={`d${lang}${selected}`} fallback={<AdminDaySkeleton />}>
               <DayBoard date={selected} canManage={canManage} scroll={!!dParam} />
             </Suspense>
-          ) : <div className="ad-empty"><b>یک روز را انتخاب کنید</b><p>با انتخاب هر روز از تقویم، رزروها و وضعیت میزهای همان روز نمایش داده می‌شود.</p></div>}
+          ) : <div className="ad-empty"><b>{C.pick}</b><p>{C.pickSub}</p></div>}
         </section>
       </div>
     </>

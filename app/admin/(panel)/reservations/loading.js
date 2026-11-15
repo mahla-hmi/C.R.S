@@ -1,2 +1,2 @@
-import { AdminListSkeleton } from '@/components/Skeleton';
+import { AdminListSkeleton } from '@/components/admin/Skeletons';
 export default function ReservationsLoading() { return <AdminListSkeleton shell />; }

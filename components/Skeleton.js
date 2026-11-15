@@ -16,22 +16,24 @@ export function Loading({ label = 'Loading…', instant = false, className = '',
 
 const W = ['58%', '44%', '66%', '38%', '52%', '47%'];
 
-// Menu page: search box + category chips + 3 sections of price rows (same classes as the real menu, so nothing jumps)
+// Menu page: search box + category chips + 3 sections of banner + item cards (same classes as the real menu, so nothing jumps)
 export function MenuSkeleton({ label, instant, header = false }) {
   return (
     <Loading label={label} instant={instant}>
       {header && <div className="wrap mhead"><Sk w={110} h={34} r={12} /><Sk w={120} h={36} r={99} /></div>}
       <div className="mbar"><div className="wrap">
-        <Sk h={46} r={14} style={{ marginBottom: 8 }} />
-        <div className="chips">{[70, 96, 84, 76, 92, 80].map((w, i) => <Sk key={i} w={w} h={34} r={99} style={{ flex: 'none' }} />)}</div>
+        <Sk h={46} r={99} style={{ marginBottom: 10 }} />
+        <div className="chips">{[70, 96, 84, 76, 92, 80].map((w, i) => <Sk key={i} w={w + 30} h={38} r={99} style={{ flex: 'none' }} />)}</div>
       </div></div>
       <div className="wrap mlist">
-        {[0, 1, 2].map((c) => (
+        {[0, 1].map((c) => (
           <section className="mcat" key={c}>
-            <Sk w={150 + c * 14} h={26} r={10} style={{ marginBottom: 12 }} />
-            {[0, 1, 2, 3, 4].map((i) => (
-              <div className="it sk-row" key={i}><Sk w={W[(c * 2 + i) % W.length]} h={16} /><Sk w={72} h={16} /></div>
-            ))}
+            <Sk h={168} r={26} style={{ marginBottom: 14, height: 'var(--mh)' }} />
+            <div className="mgrid">
+              {[0, 1, 2, 3].map((i) => (
+                <div className="mi" key={i} style={{ opacity: 1 }}><Sk w={72} h={72} r={15} style={{ flex: 'none' }} /><Sk w={W[(c * 2 + i) % W.length]} h={16} /><Sk w={64} h={16} style={{ marginInlineStart: 'auto' }} /></div>
+              ))}
+            </div>
           </section>
         ))}
       </div>
@@ -69,49 +71,4 @@ export const CardsSkeleton = ({ label, n = 3 }) => (
 // QR sheet: grid of squares
 export const QrSkeleton = ({ label }) => (
   <Loading label={label}><div className="qrg">{Array.from({ length: 8 }, (_, i) => <Sk key={i} h={196} r={16} />)}</div></Loading>
-);
-
-// Admin "reservations": [title + search box] + filter pills + cards. shell = also draw the title and search box
-// (used by loading.js, when the whole page is still on its way).
-export const AdminListSkeleton = ({ label = 'در حال بارگذاری…', shell = false, n = 4 }) => (
-  <Loading label={label}>
-    {shell && <><Sk w={120} h={30} r={10} style={{ margin: '10px 0 18px' }} /><Sk h={46} r={14} style={{ marginBottom: 14 }} /></>}
-    <Sk w={110} h={16} style={{ marginBottom: 12 }} />
-    <div className="ad-views">{[74, 112, 96, 92, 84].map((w, i) => <Sk key={i} w={w} h={38} r={99} style={{ flex: 'none' }} />)}</div>
-    <div className="ad-cards">{Array.from({ length: n }, (_, i) => <Sk key={i} h={210} r={18} />)}</div>
-  </Loading>
-);
-
-// Admin "team management": intro + add button + member cards. shell = also draw the title (used by loading.js).
-export const AdminTeamSkeleton = ({ label = 'در حال بارگذاری…', shell = false, n = 3 }) => (
-  <Loading label={label}>
-    {shell && <><Sk w={170} h={30} r={10} style={{ margin: '10px 0 8px' }} /><Sk w={300} h={14} style={{ marginBottom: 18 }} /></>}
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 16 }}><Sk w={200} h={14} /><Sk w={130} h={40} r={12} /></div>
-    <div className="ad-cards">{Array.from({ length: n }, (_, i) => <Sk key={i} h={190} r={18} />)}</div>
-  </Loading>
-);
-
-// Admin calendar: month grid and day panel. bare = no wrapper (loading.js already provides one).
-const Wrap = ({ bare, label, children }) => (bare ? <>{children}</> : <Loading label={label}>{children}</Loading>);
-export const AdminCalendarSkeleton = ({ label = 'در حال بارگذاری…', bare = false }) => (
-  <Wrap bare={bare} label={label}>
-    <Sk w={230} h={18} style={{ marginBottom: 12 }} />
-    <div className="cal-grid">{Array.from({ length: 35 }, (_, i) => <Sk key={i} h={54} r={14} />)}</div>
-  </Wrap>
-);
-export const AdminDaySkeleton = ({ label = 'در حال بارگذاری…', bare = false }) => (
-  <Wrap bare={bare} label={label}>
-    <Sk w={200} h={26} r={10} style={{ marginBottom: 14 }} />
-    <div className="cal-stats">{[0, 1, 2, 3].map((i) => <Sk key={i} h={84} r={18} />)}</div>
-    <div style={{ display: 'grid', gap: 8, marginTop: 22 }}>{Array.from({ length: 6 }, (_, i) => <Sk key={i} h={30} r={10} />)}</div>
-    <div className="ad-cards" style={{ marginTop: 22 }}>{[0, 1].map((i) => <Sk key={i} h={210} r={18} />)}</div>
-  </Wrap>
-);
-
-// Admin forms (manual reservation): a title and a few cards of fields.
-export const AdminFormSkeleton = ({ label = 'در حال بارگذاری…', shell = false }) => (
-  <Loading label={label}>
-    {shell && <Sk w={150} h={30} r={10} style={{ margin: '10px 0 18px' }} />}
-    <div style={{ display: 'grid', gap: 14 }}>{[150, 220, 170].map((h, i) => <Sk key={i} h={h} r={18} />)}</div>
-  </Loading>
 );

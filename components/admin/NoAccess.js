@@ -1,3 +1,5 @@
-export default function NoAccess({ text = 'برای دریافت دسترسی با مالک کافه تماس بگیرید.' }) {
-  return <div className="ad-empty"><b>🔒 به این بخش دسترسی ندارید</b><p>{text}</p></div>;
+import { adminI18n } from '@/lib/admin/lang';
+export default async function NoAccess({ text }) {
+  const { t } = await adminI18n();
+  return <div className="ad-empty"><b>{t.noAccess.title}</b><p>{text || t.noAccess.text}</p></div>;
 }

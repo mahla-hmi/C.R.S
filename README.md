@@ -106,3 +106,32 @@ All visible Persian text uses a refined, formal register. The no-show action/sta
 - The footer shows only the café name (the "© 2026 · made with ♥ …" line was removed).
 - The gallery has 6 photos, so the grid is complete on phones (2 columns) and desktop (4 columns). To change one, edit `gal` in `app/[locale]/page.js`.
 - The reservation step cards ("in two steps…") are centred in the page (`.steps` in `app/globals.css`), whatever their number.
+
+## Menu photos (step 22)
+The menu page shows a dark photo banner per category and a card with a photo for every item (`components/MenuClient.js`, styles at the end of `app/globals.css`).
+- Photos live in `public/images/menu-<categoryId>.avif` (banner, 960 px) and `menu-<categoryId>-s.avif` (thumbnail, 360 px); category ids are in `lib/db/seed/menu.js`.
+- Items use their category's photo, each cropped a little differently. A category without photos (a new one added in the database) shows no photo and still looks fine.
+- To give one category a new photo, replace its two files. The blurred placeholders are in `lib/images.manifest.json`.
+
+## Opening hours (step 23)
+The badge on the home page hero shows the real hours and a live dot (green = open now, red = closed, Tehran time).
+Hours are defined in `lib/hours.js` (SHIFTS: 07:00-13:00 and 15:00-24:00) with the matching text in `lib/dict.js` (`hours` and the visit-section `info` row).
+Table booking keeps its own window (`OPEN`/`CLOSE` in `lib/booking.js`, currently 10:00-22:00).
+
+## Typography (step 24)
+All customer pages use Vazirmatn (Playfair Display only for English h1/h2); form controls inherit it. Page titles of booking, my bookings and menu share `--t-page` (top of `app/globals.css`), inputs/selects/textareas share one size and weight, numbers use equal-width digits. The missing `--line` colour variable (booking form checkbox border) is now defined.
+
+## Menu management in the owner panel (step 25)
+Owner panel -> **Menu** (`/admin/menu`, `components/admin/MenuManager.js`). The owner can, per category: see everything (hidden categories and unavailable items included), change an item's price (type in the row, Enter or ✓ to save), switch an item available/unavailable (unavailable items are hidden from guests), rename, add an English name, change or remove the photo, move an item to another category, reorder (▲▼), add and delete items; and for categories: rename, photo, show/hide, reorder, add, delete (only when empty, so dishes are never lost silently).
+- Permission: owners always; a staff member needs the new **"Menu management"** (`menu.manage`) box ticked in Team.
+- Server code: `lib/admin/menu.js` (validation), `lib/admin/menu-ops.js` (database operations), routes under `app/api/admin/menu/*`. Every route checks the session, the permission and the request origin.
+- Photos: the browser crops them to a square and resizes them (960 px + 360 px thumbnail), the server checks the file's real type and stores the bytes in the `menu_images` collection (migration 006, runs automatically). They are served publicly from `/api/menu-image/<id>` (`?s=1` = thumbnail). An uploaded photo that is never saved is removed after a day; a replaced or deleted photo is removed at once.
+- The website menu reads the same collections, so a change shows on the next page load. An item without its own photo shows its category's photo (uploaded one, else the bundled `public/images/menu-<id>.avif`).
+- Existing prices are kept as they are in the database (full toman). Fix typos such as "Hot chocolate 279,999" directly in the panel.
+
+## Bulk price change (step 26)
+Owner panel -> Menu -> **% Bulk price change** (owners only; a staff member with "menu.manage" can still edit prices one by one).
+The owner picks raise or lower, types a percentage, chooses all products or only some categories, and a rounding step (none / 1,000 / 5,000 / 10,000 toman, default 1,000). **Preview** shows how many prices change with examples; nothing is written until **Apply**. Hidden categories and unavailable items are included, so they are not left with old prices.
+- Limits: up to +300 % and -90 %, at most 2 decimals; a new price is never below one rounding step.
+- **Undo**: the old prices of the latest bulk change are kept (`menu_price_changes`, one record). Undo restores only items that still have the price the bulk change gave them, so a price edited by hand afterwards is never overwritten. A new bulk change replaces the undo record.
+- Code: `validateBulk`/`newPrice` in `lib/admin/menu.js`, `bulkPreview`/`bulkApply`/`bulkUndo`/`lastBulk` in `lib/admin/menu-ops.js`, routes `app/api/admin/menu/bulk` and `.../bulk/undo`.

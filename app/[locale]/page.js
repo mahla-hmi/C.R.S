@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
+import OpenChip from '@/components/OpenChip';
 import Reveal from '@/components/Reveal';
 import Photo from '@/components/Photo';
 import { dict } from '@/lib/dict';
@@ -38,7 +39,7 @@ export default async function Home({ params }) {
             <div className="hero-vis a2">
               <div className="steam"><i /><i /><i /></div>
               <div className="arch"><Photo id={P.hero} priority /></div>
-              <div className="chip"><span className="dot" />{t.open}</div>
+              <OpenChip hours={t.hours} openLabel={t.openNow} closedLabel={t.closedNow} />
             </div>
           </div>
         </section>

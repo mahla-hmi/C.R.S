@@ -2,8 +2,9 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { dashboard } from '@/lib/admin/data';
 import { getSession } from '@/lib/admin/server';
+import { adminI18n } from '@/lib/admin/lang';
 import { fmt } from '@/lib/jalali';
-import { fd, fmtTime } from '@/lib/booking';
+import { fmtTime } from '@/lib/booking';
 import ReservationCard from '@/components/admin/ReservationCard';
 import StatusBadge from '@/components/admin/StatusBadge';
 import AutoRefresh from '@/components/admin/AutoRefresh';
@@ -14,6 +15,8 @@ import { can } from '@/lib/admin/permissions';
 export const dynamic = 'force-dynamic';
 
 export default async function Dashboard() {
+  const { lang, t, n, fill } = await adminI18n();
+  const D = t.dash;
   let session;
   try { session = await getSession(); } catch { return <DbError />; }
   if (!session) redirect('/admin/login');
@@ -23,39 +26,39 @@ export default async function Dashboard() {
   try { d = await dashboard(); } catch (e) { console.error('[admin] dashboard:', e?.message); }
   if (!d) return <DbError />;
   const tiles = [
-    { href: '/admin/reservations?view=pending', n: d.pending, label: 'در انتظار تأیید', hot: d.pending > 0 },
-    { href: '/admin/reservations?view=today', n: d.todayLive, label: 'رزروهای امروز' },
-    { n: d.guestsToday, label: 'میهمانان امروز' },
-    { href: '/admin/reservations?view=upcoming', n: d.upcoming, label: 'رزروهای پیش‌رو' },
+    { href: '/admin/reservations?view=pending', num: d.pending, label: D.pending, hot: d.pending > 0 },
+    { href: '/admin/reservations?view=today', num: d.todayLive, label: D.todayN },
+    { num: d.guestsToday, label: D.guestsToday },
+    { href: '/admin/reservations?view=upcoming', num: d.upcoming, label: D.upcoming },
   ];
   return (
     <>
       <AutoRefresh />
       <div className="ad-head">
-        <div><h1>خوش آمدید، {session.name}</h1><p className="ad-mut">{fmt(d.today, 'fa', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p></div>
-        {canManage && <Link className="ad-btn primary" href="/admin/reservations/new">+ رزرو دستی</Link>}
+        <div><h1>{fill(D.welcome, { name: session.name })}</h1><p className="ad-mut">{fmt(d.today, lang, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p></div>
+        {canManage && <Link className="ad-btn primary" href="/admin/reservations/new">{D.manual}</Link>}
       </div>
       <PushSetup variant="card" />
       <div className="ad-stats">
-        {tiles.map((t) => {
-          const body = <><span className="ad-n">{fd(t.n)}</span><span className="ad-l">{t.label}</span></>;
-          return t.href ? <Link key={t.label} href={t.href} className={`ad-tile${t.hot ? ' hot' : ''}`}>{body}</Link> : <div key={t.label} className="ad-tile">{body}</div>;
+        {tiles.map((x) => {
+          const body = <><span className="ad-n">{n(x.num)}</span><span className="ad-l">{x.label}</span></>;
+          return x.href ? <Link key={x.label} href={x.href} className={`ad-tile${x.hot ? ' hot' : ''}`}>{body}</Link> : <div key={x.label} className="ad-tile">{body}</div>;
         })}
       </div>
 
       <section className="ad-sec">
-        <div className="ad-sech"><h2>نیازمند اقدام</h2>{d.pending > 6 && <Link href="/admin/reservations?view=pending">مشاهدهٔ همه ({fd(d.pending)})</Link>}</div>
+        <div className="ad-sech"><h2>{D.needs}</h2>{d.pending > 6 && <Link href="/admin/reservations?view=pending">{fill(D.viewAll, { n: n(d.pending) })}</Link>}</div>
         {d.needs.length ? <div className="ad-cards">{d.needs.map((r) => <ReservationCard key={r.code} r={r} canManage={canManage} />)}</div>
-          : <div className="ad-empty"><b>درخواست جدیدی در انتظار بررسی نیست ✓</b><p>رزروهای جدید در همین بخش نمایش داده می‌شوند.</p></div>}
+          : <div className="ad-empty"><b>{D.needsEmpty}</b><p>{D.needsEmptySub}</p></div>}
       </section>
 
       <section className="ad-sec">
-        <div className="ad-sech"><h2>برنامهٔ امروز</h2><Link href="/admin/reservations?view=today">همهٔ رزروهای امروز</Link></div>
+        <div className="ad-sech"><h2>{D.schedule}</h2><Link href="/admin/reservations?view=today">{D.allToday}</Link></div>
         {d.schedule.length ? (
           <ul className="ad-sched">{d.schedule.map((r) => (
-            <li key={r.code}><b className="ad-t">{fmtTime(r.startMin, 'fa')}</b><span className="ad-sn">{r.name}</span>
-              <span className="ad-sm">میز {r.tableId} · {fd(r.guests)} نفر</span><StatusBadge status={r.status} /></li>))}</ul>
-        ) : <div className="ad-empty"><b>برای امروز رزروی ثبت نشده</b></div>}
+            <li key={r.code}><b className="ad-t">{fmtTime(r.startMin, lang)}</b><span className="ad-sn">{r.name}</span>
+              <span className="ad-sm">{fill(D.row, { id: r.tableId, g: fill(r.guests === 1 ? t.guest1 : t.guestN, { n: n(r.guests) }) })}</span><StatusBadge status={r.status} /></li>))}</ul>
+        ) : <div className="ad-empty"><b>{D.noToday}</b></div>}
       </section>
     </>
   );

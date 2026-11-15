@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import LogoutButton from './LogoutButton';
+import LangSwitch from './LangSwitch';
+import { useAdmin } from './LangProvider';
 
 // The panel frame. The sidebar can be opened and closed everywhere:
 //  - phones/tablets (< 900px): a drawer that slides in from the right, with a dimmed backdrop
@@ -12,6 +14,7 @@ const Close = () => <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12
 
 export default function AdminShell({ side, brand, bottom, children }) {
   const path = usePathname();
+  const { t } = useAdmin();
   const [desktop, setDesktop] = useState(false);
   const [open, setOpen] = useState(false);           // drawer (phones, tablets)
   const [collapsed, setCollapsed] = useState(false); // icon rail (desktop)
@@ -44,15 +47,16 @@ export default function AdminShell({ side, brand, bottom, children }) {
   const expanded = desktop ? !collapsed : open;
   return (
     <div className={`ad-app${collapsed ? ' rail' : ''}${open ? ' drawer-open' : ''}`}>
-      <aside id="ad-side" className="ad-side" aria-label="منوی کناری" onClick={(e) => { if (e.target.closest('a')) setOpen(false); }}>
-        <button type="button" className="ad-close" onClick={() => setOpen(false)} aria-label="بستن منو"><Close /></button>
+      <aside id="ad-side" className="ad-side" aria-label={t.nav.side} onClick={(e) => { if (e.target.closest('a')) setOpen(false); }}>
+        <button type="button" className="ad-close" onClick={() => setOpen(false)} aria-label={t.nav.closeMenu}><Close /></button>
         {side}
       </aside>
       <div className="ad-scrim" onClick={() => setOpen(false)} aria-hidden="true" />
       <div className="ad-main">
         <header className="ad-top">
-          <button type="button" className="ad-burger" onClick={toggle} aria-controls="ad-side" aria-expanded={expanded} aria-label={expanded ? 'بستن منوی کناری' : 'باز کردن منوی کناری'}><Burger /></button>
+          <button type="button" className="ad-burger" onClick={toggle} aria-controls="ad-side" aria-expanded={expanded} aria-label={expanded ? t.nav.closeSide : t.nav.openSide}><Burger /></button>
           {brand}
+          <LangSwitch />
           <LogoutButton />
         </header>
         {children}

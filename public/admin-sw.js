@@ -7,8 +7,9 @@ self.addEventListener('push', (event) => {
   let d = {};
   try { d = event.data ? event.data.json() : {}; } catch { d = { body: event.data ? event.data.text() : '' }; }
   event.waitUntil((async () => {
-    await self.registration.showNotification(d.title || 'درخواست رزرو جدید', {
-      body: d.body || '', icon: '/admin-icon-192.png', badge: '/admin-badge.png', lang: 'fa', dir: 'rtl',
+    const lang = d.lang === 'en' ? 'en' : 'fa';
+    await self.registration.showNotification(d.title || (lang === 'en' ? 'New booking request' : 'درخواست رزرو جدید'), {
+      body: d.body || '', icon: '/admin-icon-192.png', badge: '/admin-badge.png', lang, dir: lang === 'en' ? 'ltr' : 'rtl',
       tag: d.tag || undefined, vibrate: [120, 60, 120], data: { url: d.url || '/admin/reservations?view=pending' },
     });
     // a panel that is open right now refreshes at once instead of waiting for its 30-second timer
