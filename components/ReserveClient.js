@@ -4,10 +4,11 @@ import Link from 'next/link';
 import { FLOOR_IMAGE } from '@/lib/tables';
 import { fmt } from '@/lib/jalali';
 import { SlotsSkeleton, FloorSkeleton } from '@/components/Skeleton';
+import FloorTable, { ZoneBands } from '@/components/FloorTable';
 import { pushSupport, subscribeForBooking } from '@/lib/guest-push';
 import {
   PURPOSES, ZONES, EMAIL_RE, OPEN, CLOSE, STEP, MAX_GUESTS, cafeNow, bookingDays, earliestStart, isFree,
-  stayMinutes, stayFor, autoPick, fmtTime, fmtDur, fd, normDigits,
+  stayMinutes, stayFor, autoPick, fitSeats, fmtTime, fmtDur, fd, normDigits,
 } from '@/lib/booking';
 
 const BACK_TO_FORM = ['bad_date', 'bad_time', 'too_soon', 'bad_contact', 'bad_email', 'bad_purpose', 'bad_zone'];
@@ -55,8 +56,9 @@ export default function ReserveClient({ locale, t, special: sp0 }) {
   const earliest = date ? earliestStart(date, cafeNow()) : OPEN;
   const starts = []; for (let s = OPEN; s + STEP <= CLOSE; s += STEP) starts.push(s);
   const stayAt = (s) => stayFor(purpose, guests, s);
+  const need = avail ? fitSeats(avail, guests) : guests; // only tables of this size are offered (see fitSeats in lib/booking.js)
   const fitsIn = (z) => (s) => !!avail && s >= earliest
-    && avail.some((x) => x.seats >= guests && (z === 'any' || x.zone === z) && isFree(x.busy, s, stayAt(s)));
+    && avail.some((x) => x.seats === need && (z === 'any' || x.zone === z) && isFree(x.busy, s, stayAt(s)));
   const fits = fitsIn(zone), fitsAny = fitsIn('any');
   const okStart = start !== null && fits(start) ? start : null;
   const dur = start !== null ? stayAt(start) : stayMinutes(purpose, guests);
@@ -64,13 +66,13 @@ export default function ReserveClient({ locale, t, special: sp0 }) {
   const when = date && fmt(date, locale, { weekday: 'long', day: 'numeric', month: 'long' });
   const n = (x) => (fa ? fd(x) : x);
   const guestLabel = (g) => (g === 1 ? t.solo : t.guestN.replace('{n}', n(g)));
-  const tableOk = (id) => { const x = avail?.find((a) => a.id === id); return !!x && start !== null && x.seats >= guests && isFree(x.busy, start, stayAt(start)); };
+  const tableOk = (id) => { const x = avail?.find((a) => a.id === id); return !!x && start !== null && x.seats === need && isFree(x.busy, start, stayAt(start)); };
 
   // table step: suggest the best table; if the time vanished meanwhile, go back
   useEffect(() => {
     if (step !== 1 || !avail || start === null || done) return;
     if (!fitsAny(start)) { setStep(0); setErr('gone'); return; }
-    if (!tableId || !tableOk(tableId)) setTableId(autoPick(avail, { guests, zone, start, dur: stayAt(start) }) || '');
+    if (!tableId || !tableOk(tableId)) setTableId(autoPick(avail.filter((x) => x.seats === need), { guests, zone, start, dur: stayAt(start) }) || '');
   }, [step, avail, start, tableId]);
 
   const msg = err && (t.errors[err] || t.errors.generic);
@@ -141,13 +143,16 @@ export default function ReserveClient({ locale, t, special: sp0 }) {
           {avail && <p className="mut center">{t.pickAuto}</p>}
           {msg && <p className="err">{msg}</p>}
           {!avail && !err && <FloorSkeleton label={t.loading} />}
-          {avail && <div className={`floor fx${FLOOR_IMAGE ? ' img' : ''}`} style={FLOOR_IMAGE ? { backgroundImage: `url(${FLOOR_IMAGE})` } : undefined}>{avail.map((x, i) => {
-            const taken = start === null || !isFree(x.busy, start, stayAt(start)), small = x.seats < guests, off = taken || small;
-            return <button key={x.id} disabled={off} style={{ left: x.x + '%', top: x.y + '%', '--i': i }}
-              className={`tb ${taken ? 'bk' : small ? 'sm' : ''} ${tableId === x.id ? 'sel' : ''}`} onClick={() => { setTableId(x.id); clr(); }}>
-              <b>{x.id}</b><small>{x.seats} {t.seats}</small></button>;
-          })}</div>}
-          {avail && <div className="legend"><span className="l1">{t.free}</span><span className="l2">{t.booked}</span><span className="l3">{t.small}</span></div>}
+          {avail && <div className={`floor fx${FLOOR_IMAGE ? ' img' : ''}`} style={FLOOR_IMAGE ? { backgroundImage: `url(${FLOOR_IMAGE})` } : undefined}>
+            <ZoneBands tables={avail} names={t.zones} />
+            {avail.map((x, i) => {
+              const wrong = x.seats !== need, taken = !wrong && (start === null || !isFree(x.busy, start, stayAt(start)));
+              return <FloorTable key={x.id} id={x.id} seats={x.seats} x={x.x} y={x.y} index={i} guests={guests}
+                state={wrong ? 'small' : taken ? 'booked' : 'free'} picked={tableId === x.id}
+                label={`${x.id} · ${x.seats} ${t.seats}`} onPick={() => { setTableId(x.id); clr(); }} />;
+            })}</div>}
+          {tableId && avail && <p key={tableId} className="pickbar">{t.picked}: {tableId} · {n(avail.find((a) => a.id === tableId)?.seats)} {t.seats}</p>}
+          {avail && <div className="legend"><span className="l1">{t.free}</span><span className="l4">{t.picked}</span><span className="l2">{t.booked}</span><span className="l3">{t.small}</span></div>}
           {avail && canPush && <label className="pushopt"><input type="checkbox" checked={wantPush} onChange={(e) => setWantPush(e.target.checked)} /><span><b>{t.pushLabel}</b><small>{t.pushHint}</small></span></label>}
           <div className="nav2"><button className="btn ghost" onClick={() => { setErr(''); setStep(0); }}>{t.prev}</button><button className="btn" disabled={busy || !tableId} onClick={submit}>{t.submit}</button></div>
         </>}
