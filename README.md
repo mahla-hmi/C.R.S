@@ -135,3 +135,6 @@ The owner picks raise or lower, types a percentage, chooses all products or only
 - Limits: up to +300 % and -90 %, at most 2 decimals; a new price is never below one rounding step.
 - **Undo**: the old prices of the latest bulk change are kept (`menu_price_changes`, one record). Undo restores only items that still have the price the bulk change gave them, so a price edited by hand afterwards is never overwritten. A new bulk change replaces the undo record.
 - Code: `validateBulk`/`newPrice` in `lib/admin/menu.js`, `bulkPreview`/`bulkApply`/`bulkUndo`/`lastBulk` in `lib/admin/menu-ops.js`, routes `app/api/admin/menu/bulk` and `.../bulk/undo`.
+
+## Item photos (step 27)
+26 menu items now have their own photo (`lib/db/seed/item-photos.js`, attached by migration `007_item_photos` on the next start). Matching is by category + item name; items that were renamed or already have a photo are skipped, and the log line `[db] item photos attached: N of 26` shows how many matched. The photos become ordinary uploaded photos, so the owner can change or remove each one in Panel -> Menu. Every item without its own photo keeps showing its category photo.
